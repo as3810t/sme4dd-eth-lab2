@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.0.0
-pragma solidity ^0.8.22;
+pragma solidity ^0.8.25;
 
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -8,7 +8,9 @@ import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Rec
 import { FundToken } from "./FundToken.sol";
 import { NftExchange } from "./NftExchange.sol";
 
-contract NftInvestmentFund is IERC721Receiver {
+contract NftInvestmentFund is AccessControl, IERC721Receiver {
+	bytes32 public constant FUND_MANAGER_ROLE = keccak256("FUND_MANAGER_ROLE");
+
 	address public fundManager;
 
 	string public name;
@@ -45,6 +47,7 @@ contract NftInvestmentFund is IERC721Receiver {
 		if (_investmentEnd <= _fundingEnd) revert InvestmentAfterFunding();
 
 		fundManager = msg.sender;
+		_grantRole(FUND_MANAGER_ROLE, fundManager);
 
 		name = _name;
 		fundToken = new FundToken(address(this), string.concat(_name, " Token"), _symbol);
@@ -106,7 +109,7 @@ contract NftInvestmentFund is IERC721Receiver {
 	function buyNFT(
 		address nftExchangeAddress,
 		uint256 listingId
-	) external onlyAfter(fundingEnd) onlyBefore(investmentEnd) {
+	) external onlyAfter(fundingEnd) onlyBefore(investmentEnd) onlyRole(FUND_MANAGER_ROLE) {
 		NftExchange exchange = NftExchange(nftExchangeAddress);
 
 		(, , , , uint256 price, ) = exchange.listings(listingId);
@@ -119,7 +122,7 @@ contract NftInvestmentFund is IERC721Receiver {
 	function registerNFT(
 		address nftAddress,
 		uint256 nftTokenId
-	) external onlyAfter(fundingEnd) onlyBefore(investmentEnd) {
+	) external onlyAfter(fundingEnd) onlyBefore(investmentEnd) onlyRole(FUND_MANAGER_ROLE) {
 		ownedNftAddresses.push(nftAddress);
 		ownedNftTokenIds[nftAddress].push(nftTokenId);
 	}
@@ -130,7 +133,7 @@ contract NftInvestmentFund is IERC721Receiver {
 		address nftAddress,
 		uint256 tokenIndex,
 		uint256 price
-	) external onlyAfter(fundingEnd) {
+	) external onlyAfter(fundingEnd) onlyRole(FUND_MANAGER_ROLE) {
 		require(ownedNftTokenIds[nftAddress].length > tokenIndex, "Non-existent token");
 		uint256 nftTokenId = ownedNftTokenIds[nftAddress][tokenIndex];
 
@@ -144,7 +147,7 @@ contract NftInvestmentFund is IERC721Receiver {
 	}
 
 	// Register NFT sales
-	function registerNFTSales() public onlyAfter(fundingEnd) {
+	function registerNFTSales() public onlyAfter(fundingEnd) onlyRole(FUND_MANAGER_ROLE) {
 		for (uint256 i = 0; i < activeListings.length; ) {
 			ActiveListing memory activeListing = activeListings[i];
 
@@ -161,7 +164,7 @@ contract NftInvestmentFund is IERC721Receiver {
 	}
 
 	// Close the fund after the end
-	function closeFund() external onlyAfter(investmentEnd) {
+	function closeFund() external onlyAfter(investmentEnd) onlyRole(FUND_MANAGER_ROLE) {
 		require(ownedNftAddresses.length == 0, "Not all NFT is sold");
 		if (activeListings.length > 0) {
 			registerNFTSales();
