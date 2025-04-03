@@ -24,7 +24,7 @@ contract NftInvestmentFund is AccessControl, IERC721Receiver {
 	uint256 public balanceAtEnd;
 
 	address[] public ownedNftAddresses;
-	mapping(address => uint[]) public ownedNftTokenIds;
+	mapping(address => uint256[]) public ownedNftTokenIds;
 
 	struct ActiveListing {
 		address nftExchangeAddress;
@@ -79,7 +79,9 @@ contract NftInvestmentFund is AccessControl, IERC721Receiver {
 	 ****************************************/
 
 	// Inverstor buys tokens
+	// slither-disable-next-line naming-convention
 	function invest(uint256 _tokenCount) external payable onlyBefore(fundingEnd) {
+		// solhint-disable-next-line gas-custom-errors
 		require(msg.value >= _tokenCount * pricePerToken, "Insuffisient funds sent");
 
 		// Mint tokens that represent their investment
@@ -92,6 +94,7 @@ contract NftInvestmentFund is AccessControl, IERC721Receiver {
 			uint256 withdrawAmount = (balanceAtEnd / fundTokensAtEnd) * fundToken.balanceOf(msg.sender);
 
 			(bool sent, ) = payable(msg.sender).call{ value: withdrawAmount }("");
+			// solhint-disable-next-line gas-custom-errors
 			require(sent, "Failed to send Ether");
 
 			// Their tokens are burnt so that they cannot withdraw twice
@@ -113,6 +116,7 @@ contract NftInvestmentFund is AccessControl, IERC721Receiver {
 		NftExchange exchange = NftExchange(nftExchangeAddress);
 
 		(, , , , uint256 price, ) = exchange.listings(listingId);
+		// solhint-disable-next-line gas-custom-errors
 		require(address(this).balance >= price, "Insuffisient funds");
 
 		exchange.buyNFT{ value: price }(listingId);
@@ -134,6 +138,7 @@ contract NftInvestmentFund is AccessControl, IERC721Receiver {
 		uint256 tokenIndex,
 		uint256 price
 	) external onlyAfter(fundingEnd) onlyRole(FUND_MANAGER_ROLE) {
+		// solhint-disable-next-line gas-custom-errors
 		require(ownedNftTokenIds[nftAddress].length > tokenIndex, "Non-existent token");
 		uint256 nftTokenId = ownedNftTokenIds[nftAddress][tokenIndex];
 
@@ -165,10 +170,12 @@ contract NftInvestmentFund is AccessControl, IERC721Receiver {
 
 	// Close the fund after the end
 	function closeFund() external onlyAfter(investmentEnd) onlyRole(FUND_MANAGER_ROLE) {
+		// solhint-disable-next-line gas-custom-errors
 		require(ownedNftAddresses.length == 0, "Not all NFT is sold");
 		if (activeListings.length > 0) {
 			registerNFTSales();
 		}
+		// solhint-disable-next-line gas-custom-errors
 		require(activeListings.length == 0, "Not all NFT sale went through");
 
 		ended = true;

@@ -7,8 +7,6 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-import "hardhat/console.sol";
-
 contract NftExchange is Pausable, Ownable, IERC721Receiver {
 	uint256 private _nextListingId;
 
@@ -41,9 +39,7 @@ contract NftExchange is Pausable, Ownable, IERC721Receiver {
 	}
 
 	function sellNFT(address nftContract, uint256 nftTokenId, uint256 price) public whenNotPaused returns (uint256) {
-		console.log("Selling %s[%s] for %d", nftContract, nftTokenId, price);
 		IERC721(nftContract).safeTransferFrom(msg.sender, address(this), nftTokenId);
-		console.log("Successful transfer %s[%s]", nftContract, nftTokenId);
 
 		uint256 listingId = _nextListingId++;
 
@@ -55,7 +51,6 @@ contract NftExchange is Pausable, Ownable, IERC721Receiver {
 			price: price,
 			isSold: false
 		});
-		console.log("Listing created: %d", listingId);
 
 		emit NftOffered(listingId, nftContract, nftTokenId, msg.sender, price);
 		return listingId;
