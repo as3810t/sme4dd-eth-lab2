@@ -23,6 +23,8 @@ contract NftInvestmentFund is AccessControl, IERC721Receiver {
 	uint256 public fundTokensAtEnd;
 	uint256 public balanceAtEnd;
 
+	uint256 public constant DUMMY = 0;
+
 	address[] public ownedNftAddresses;
 	mapping(address => uint256[]) public ownedNftTokenIds;
 
